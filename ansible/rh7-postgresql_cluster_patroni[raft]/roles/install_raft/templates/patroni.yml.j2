@@ -1,0 +1,139 @@
+scope: pgsql
+#namespace: /service/
+name: {{hostvars[inventory_hostname].ansible_host[:-4]}}
+
+restapi:
+  listen: {{hostvars[inventory_hostname].ansible_host}}:8008
+  connect_address: {{hostvars[inventory_hostname].ansible_host}}:8008
+#  certfile: /etc/ssl/certs/ssl-cert-snakeoil.pem
+#  keyfile: /etc/ssl/private/ssl-cert-snakeoil.key
+#  authentication:
+#    username: username
+#    password: password
+
+# ctl:
+#   insecure: false # Allow connections to SSL sites without certs
+#   certfile: /etc/ssl/certs/ssl-cert-snakeoil.pem
+#   cacert: /etc/ssl/certs/ssl-cacert-snakeoil.pem
+
+#etcd:
+  #Provide host to do the initial discovery of the cluster topology:
+  #host: 192.168.62.208:2379
+  #Or use "hosts" to provide multiple endpoints
+  #Could be a comma separated string:
+  #hosts: host1:port1,host2:port2
+  #or an actual yaml list:
+#  hosts:
+#  - test-patroni-n1.isb:2379
+#  - test-patroni-n2.isb:2379
+#  - test-patroni-n3.isb:2379
+  #Once discovery is complete Patroni will use the list of advertised clientURLs
+  #It is possible to change this behavior through by setting:
+  #use_proxies: true
+
+raft:
+  data_dir: /data/raft
+  self_addr: {{hostvars[inventory_hostname].ansible_host[:-4]}}:2379
+  partner_addrs: 
+{% for host in groups['patroni_cluster'] %}
+  - {{ hostvars[host]['inventory_hostname'] }}:2379
+{% endfor %}
+bootstrap:
+  # this section will be written into Etcd:/<namespace>/<scope>/config after initializing new cluster
+  # and all other cluster members will use it as a `global configuration`
+  dcs:
+    ttl: {{ patroni_ttl |d(30, true) |int }}
+    loop_wait: {{ patroni_loop_wait |d(10, true) |int }}
+    retry_timeout: {{ patroni_retry_timeout |d(10, true) |int }}
+    maximum_lag_on_failover: {{ patroni_maximum_lag_on_failover |d(1048576, true) |int }}
+    master_start_timeout: {{ patroni_master_start_timeout |d(300, true) |int }}
+    synchronous_mode: {{ synchronous_mode |string |d(false, true) |lower }}
+    synchronous_mode_strict: {{ synchronous_mode_strict |string |d(false, true) |lower }}
+    synchronous_node_count: {{ synchronous_node_count |d(1, true) |int }}
+    #standby_cluster:
+      #host: 127.0.0.1
+      #port: 1111
+      #primary_slot_name: patroni
+    postgresql:
+      use_pg_rewind: true
+      use_slots: true
+      parameters:
+{% for parameter in pg_parameters %}
+        {{ parameter.option }}: "{{ parameter.value }}"
+{% endfor %}
+      recovery_conf:    
+        recovery_target_action: {{rec_recovery_target_action}}
+        recovery_target_timeline: {{rec_recovery_target_timeline}} 
+        restore_command: "{{rec_restore_command}}"
+
+  # some desired options for 'initdb'
+  initdb:  # Note: It needs to be a list (some options need values, others are switches)
+  - encoding: UTF8
+  - data-checksums
+
+  pg_hba:
+  - local all all  trust
+  - host all all 127.0.0.1/32 trust
+{% for patroni in groups['postgres_cluster'] %}
+  - host postgres repluser  {{ hostvars[patroni]['inventory_hostname'] }}/32 trust
+{% endfor %}
+  - host all all 0.0.0.0/0 scram-sha-256
+  - local replication all  trust
+  - host replication all 127.0.0.1/32 trust
+{% for patroni in groups['postgres_cluster'] %}
+  - host replication repluser  {{ hostvars[patroni]['inventory_hostname'] }}/32 trust
+{% endfor %}
+  users:
+   repluser:
+      password: {{pgsqlrep_password}}
+      options:
+        - replication
+  
+postgresql:
+  listen: 0.0.0.0:5432
+  connect_address: {{hostvars[inventory_hostname].ansible_host}}:5432
+  data_dir: {{pgdata}}
+  bin_dir: /usr/pgsql-13/bin/
+#  config_dir:
+  pgpass: /home/postgres/.pgpass_patroni
+  authentication:
+    replication:
+      username: repluser
+      password: {{pgsqlrep_password}}
+    superuser:
+      username: postgres
+      password: {{postgres_password}}
+    rewind:  # Has no effect on postgres 10 and lower
+      username: repluser
+      password: {{pgsqlrep_password}}
+  # Server side kerberos spn
+#  krbsrvname: postgres
+  parameters:
+    unix_socket_directories: '/var/run/postgresql, /tmp'
+  recovery_conf:
+          recovery_target_action: {{rec_recovery_target_action}}
+          recovery_target_timeline: {{rec_recovery_target_timeline}} 
+  create_replica_methods:
+        - basebackup
+  basebackup:
+        max-rate: 100M
+        checkpoint: fast
+  remove_data_directory_on_rewind_failure: true
+  remove_data_directory_on_diverged_timelines: true  
+tags:
+    nofailover: false
+    noloadbalance: false
+    clonefrom: false
+    nosync: false
+log:
+  dateformat: '%Y-%m-%d %H:%M:%S'
+  dir: /var/log/patroni
+  file_num: 4
+  file_size: 25000000
+  format: '%(asctime)s %(levelname)s: %(message)s'
+  level: DEBUG
+  loggers:
+    patroni.postmaster: INFO
+    urllib3: INFO
+  max_queue_size: 1000
+  traceback_level: ERROR

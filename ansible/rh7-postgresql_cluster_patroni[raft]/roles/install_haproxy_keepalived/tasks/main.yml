@@ -1,0 +1,9 @@
+- name: Install haproxy
+  include_tasks: haproxy-task.yml
+  when: install_haproxy|bool == true
+  tags: haproxy
+
+- name: Install keepalived
+  include_tasks: keepalived-task.yml
+  when: install_keepalived|bool == true
+  tags: keepalived

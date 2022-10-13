@@ -1,0 +1,4 @@
+BACKUPPRO_PATH={{ pg_probackup_bin }}
+BACKUP_ROOT=/pg_backup
+BACKUP_INSTANCE=$1
+$BACKUPPRO_PATH delete -B $BACKUP_ROOT --instance $BACKUP_INSTANCE --delete-expired --delete-wal

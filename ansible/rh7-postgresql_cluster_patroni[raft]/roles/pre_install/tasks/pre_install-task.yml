@@ -1,0 +1,102 @@
+- name: Create config pip nexus
+  become_user: root
+  template:
+    src: pip.conf.j2
+    dest: /etc/pip.conf
+    owner: root
+    group: root
+    mode: 0644
+  tags: pip
+
+- name: Check create postgres
+  stat: path=/home/postgres/
+  register: chk_postgresuser
+  changed_when: false
+  
+- name: Recreate user postgres
+  become_user: root
+  shell: |
+    userdel postgres
+    useradd --system --create-home -U postgres
+  args:
+    executable: /bin/bash
+  when: chk_postgresuser.stat.exists == false
+  tags: pre_install
+
+- name: Copy .bash_profile
+  become_user: root
+  template:
+    src: .bash_profile.j2
+    dest: /home/postgres/.bash_profile
+    owner: postgres
+    group: postgres
+    mode: 0644
+  tags: pre_install
+
+- name: Check create pgdata
+  stat: path={{pg_data}}
+  register: chk_pgdata
+  changed_when: false
+
+- name: Create folder cluster
+  become_user: root
+  file:
+    path: '{{ pg_data }}'
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: 0700
+  tags: pre_install
+  
+- name: Create directory patroni config
+  become_user: root
+  file:
+    path: /opt/patroni
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: 0755
+  tags: pre_install
+
+- name: Check create raft
+  stat: path={{raft}}
+  register: chk_raft
+  changed_when: false
+
+- name: Create log directory patroni
+  become_user: root
+  file:
+    path: /var/log/patroni
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: 0755
+  tags: pre_install
+
+- name: Create raft directory patroni
+  become_user: root
+  file:
+    path: /data/raft
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: 0755
+  tags: pre_install
+
+- name: create directory /home/postgres/log
+  file:
+      path: /home/postgres/log
+      owner: postgres
+      group: postgres
+      state: directory
+      mode: 0777
+  tags: pre_install
+
+- name: create directory /home/postgres/scripts
+  file:
+      path: /home/postgres/scripts
+      owner: postgres
+      group: postgres
+      state: directory
+      mode: 0777
+  tags: pre_install

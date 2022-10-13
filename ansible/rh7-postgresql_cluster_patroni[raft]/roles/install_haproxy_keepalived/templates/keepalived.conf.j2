@@ -1,0 +1,29 @@
+global_defs {
+   router_id ocp_vrrp
+   enable_script_security
+   script_user root
+}
+ 
+vrrp_script haproxy_check {
+   script "/usr/libexec/keepalived/haproxy_check.sh" # Скрипт проверки работы Haproxy
+   interval 2
+   weight 2
+}
+ 
+vrrp_instance VI_1 {
+   interface {{ ansible_default_ipv4.interface }}         #Имя интерфейса
+   virtual_router_id {{ cluster_vip.split('.')[3] | int }}    #Любое значение (одинаковое на нодах)
+   priority  100            #У кого выше значение тот и будет Мастером
+   advert_int 2
+   state  BACKUP            #BACKUP ставиться на резервном
+   virtual_ipaddress {
+   {{cluster_vip}}            #Наш виртуальный IP
+   }
+   track_script {
+       haproxy_check
+   }
+   authentication {
+      auth_type PASS
+      auth_pass 1ce24b6e
+   }
+}

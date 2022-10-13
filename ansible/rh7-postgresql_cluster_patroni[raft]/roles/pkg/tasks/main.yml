@@ -1,0 +1,8 @@
+- name: Install PKG
+  include_tasks: pkg-task.yml
+  when: pkg|bool == true
+  tags: install_system_pkg
+- name: Install Postgres
+  include_tasks: postgres-task.yml
+  when: pkg_postgres|bool == true
+  tags: install_postgres_pkg

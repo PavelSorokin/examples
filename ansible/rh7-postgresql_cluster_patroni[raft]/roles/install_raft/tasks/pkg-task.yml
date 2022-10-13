@@ -1,0 +1,6 @@
+- name: Install packages system
+  package:
+    name: "{{ item }}"
+    state: latest
+  loop: "{{ os_pkg }}"
+  tags: install_pkg

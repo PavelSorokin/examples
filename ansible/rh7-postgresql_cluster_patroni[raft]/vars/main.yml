@@ -1,0 +1,144 @@
+os_pkg:
+  - python3
+  - python-psycopg2
+  - python3-setuptools
+  - python3-pip
+  - curl
+  - less
+  - vim
+  - gcc
+  - jq
+  - zabbix-sender
+  - htop
+  - iotop
+  - atop
+
+pg_13:
+ - postgresql13
+ - postgresql13-libs
+ - postgresql13-server
+ - postgresql13-contrib
+ - pg_probackup-13
+
+pgsqlrep_password: ss  # please change this value
+postgres_password: ss  # please change this value
+cluster_vip: ""  # please change this value
+
+patroni_ttl: 30
+patroni_loop_wait: 10
+patroni_retry_timeout: 10
+patroni_maximum_lag_on_failover: 1048576
+patroni_master_start_timeout: 300
+synchronous_mode: false  # or 'true' for enable synchronous database replication
+synchronous_mode_strict: false  # if 'true' then block all client writes to the master, when a synchronous replica is not available
+synchronous_node_count: 1  # number of synchronous standby databases
+
+pg_data: "/data/pgsql"
+pgdata: "/data/pgsql/13"
+raft: "/data/raft"  
+pg_conf: "{{ pgdata }}"
+pg_bin: "/usr/pgsql-13/bin"
+pg_log: "{{ pgdata }}"
+pg_port: "5432"
+pg_unix_socket_dir: "/var/run/postgresql"
+
+pg_probackup_bin: "/usr/bin/pg_probackup-13"
+pg_probackup_instance: "" # please change this value
+pg_probackup_full: "4"
+pg_probackup_days: "28"
+pg_probackup_thread: "2" # please change this value
+
+pg_extensions: 
+ - {ext: "pg_stat_statements", db: "postgres"}
+ - {ext: "pg_stat_statements", db: "template1"}
+ - {ext: "pg_buffercache", db: "template1"}
+ - {ext: "pgrowlocks", db: "template1"}
+ - {ext: "pgstattuple", db: "template1"}
+ - {ext: "dblink", db: "template1"}
+ - {ext: "pg_stat_statements", db: "template1"}
+ 
+pg_global_conf:
+ - {option: "listen_addresses", value: "*"}
+ - {option: "port", value: "5432"}
+
+pg_parameters:
+ - {option: "max_connections", value: "300"}
+ - {option: "superuser_reserved_connections", value: "5"}
+ - {option: "max_locks_per_transaction", value: "64"} 
+ - {option: "max_prepared_transactions", value: "0"}
+ - {option: "huge_pages", value: "try"}  
+ - {option: "shared_buffers", value: "8GB"}  # please change this value
+ - {option: "work_mem", value: "16MB"}  # please change this value
+ - {option: "maintenance_work_mem", value: "2GB"}  # please change this value
+ - {option: "effective_cache_size", value: "24GB"}  # please change this value
+ - {option: "checkpoint_timeout", value: "5min"}
+ - {option: "checkpoint_completion_target", value: "0.9"}
+ - {option: "wal_compression", value: "on"}
+ - {option: "min_wal_size", value: "2GB"} 
+ - {option: "max_wal_size", value: "8GB"}  
+ - {option: "wal_buffers", value: "32MB"}
+ - {option: "default_statistics_target", value: "1000"}
+ - {option: "seq_page_cost", value: "1"}
+ - {option: "random_page_cost", value: "4"}  # "1.1" for SSD storage
+ - {option: "effective_io_concurrency", value: "2"}  # "200" for SSD storage
+ - {option: "synchronous_commit", value: "off"}  # or 'off' if you can you lose single transactions in case of a crash
+ - {option: "autovacuum", value: "on"} 
+ - {option: "autovacuum_max_workers", value: "5"}
+ - {option: "autovacuum_vacuum_scale_factor", value: "0.01"}
+ - {option: "autovacuum_analyze_scale_factor", value: "0.02"}
+ - {option: "autovacuum_vacuum_cost_limit", value: "200"}  # or 500/1000
+ - {option: "autovacuum_vacuum_cost_delay", value: "20"}
+ - {option: "autovacuum_naptime", value: "1s"}
+ - {option: "max_files_per_process", value: "4096"}
+ - {option: "wal_level", value: "replica"}  
+ - {option: "wal_keep_size", value: "16000MB"}
+ - {option: "max_wal_senders", value: "15"}
+ - {option: "max_replication_slots", value: "15"}
+ - {option: "hot_standby", value: "on"}
+ - {option: "wal_log_hints", value: "on"}
+ - {option: "shared_preload_libraries", value: "pg_stat_statements,auto_explain"}
+ - {option: "pg_stat_statements.max", value: "10000"}
+ - {option: "pg_stat_statements.track", value: "all"}
+ - {option: "pg_stat_statements.save", value: "off"}
+ - {option: "auto_explain.log_min_duration", value: "3s"}  # 10 sec (by default). Decrease this value if necessary
+ - {option: "auto_explain.log_analyze", value: "true"}
+ - {option: "auto_explain.log_buffers", value: "true"}
+ - {option: "auto_explain.log_timing", value: "false"}
+ - {option: "auto_explain.log_triggers", value: "true"}
+ - {option: "auto_explain.log_verbose", value: "true"}
+ - {option: "auto_explain.log_nested_statements", value: "true"}
+ - {option: "track_io_timing", value: "on"}
+ - {option: "log_lock_waits", value: "on"}
+ - {option: "log_temp_files", value: "0"}
+ - {option: "track_activities", value: "on"}
+ - {option: "track_counts", value: "on"}
+ - {option: "track_functions", value: "all"}
+ - {option: "log_checkpoints", value: "on"}
+ - {option: "logging_collector", value: "on"}
+ - {option: "log_truncate_on_rotation", value: "on"}
+ - {option: "log_rotation_age", value: "1d"}
+ - {option: "log_rotation_size", value: "0"}
+ - {option: "log_line_prefix", value: "%m pid=[%p] sql_state=%e user=%u host=%r"}
+ - {option: "log_filename", value: "postgresql-%Y-%m-%d.log"}
+ - {option: "log_directory", value: "log"}
+ - {option: "log_destination", value: "stderr"}
+ - {option: "idle_in_transaction_session_timeout", value: "600000"}  
+ - {option: "max_worker_processes", value: "4"}
+ - {option: "max_parallel_workers", value: "4"}
+ - {option: "max_parallel_workers_per_gather", value: "2"} 
+ - {option: "max_parallel_maintenance_workers", value: "2"} 
+ - {option: "unix_socket_directories", value: "/var/run/postgresql"}
+ - {option: "hot_standby_feedback", value: "off"}
+ - {option: "max_standby_streaming_delay", value: "30s"}
+ - {option: "wal_receiver_status_interval", value: "10s"}
+ - {option: "full_page_writes", value: "on"}
+ - {option: "hot_standby", value: "on"}
+ - {option: "old_snapshot_threshold", value: "60min"}
+ - {option: "archive_mode", value: "on"}
+ - {option: "archive_timeout", value: "1800s"}
+ - {option: "archive_command", value: "/usr/bin/pg_probackup-13 archive-push -B /pg_backup --instance {{ pg_probackup_instance }} --wal-file-name=%f"}
+ - {option: "password_encryption", value: "scram-sha-256"}
+
+rec_recovery_target_action: promote
+rec_recovery_target_timeline: latest 
+rec_restore_command: "/usr/bin/pg_probackup-13 archive-get -B /pg_backup --instance {{ pg_probackup_instance }} --wal-file-path=%p --wal-file-name=%f"

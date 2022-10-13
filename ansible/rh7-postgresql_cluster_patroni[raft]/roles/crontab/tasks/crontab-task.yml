@@ -1,0 +1,50 @@
+- name: copy scripts backup/delete 
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: postgres
+    group: postgres
+    mode: 0777
+  with_items:
+    - { src: "files/backup-start.sh",dest: "/home/postgres/scripts/backup-start.sh" }
+    - { src: "files/backup.py",dest: "/home/postgres/scripts/backup.py" }
+    - { src: "files/zbx_backup_check.sh",dest: "/home/postgres/scripts/zbx_backup_check.sh" }
+    - { src: "files/delete-expired-start.sh",dest: "/home/postgres/scripts/delete-expired-start.sh" }
+    - { src: "files/delete-expired.sh.j2",dest: "/home/postgres/scripts/delete-expired.sh" }
+  tags: crontab
+
+- name: Creates weekly backup cronjob
+  cron: 
+    name: "Backup FULL"
+    minute: "30"
+    hour: "22"
+    day: "*"
+    month: "*"
+    weekday: "0"
+    user: "postgres"
+    job: "/home/postgres/scripts/backup-start.sh /pg_backup {{ pg_probackup_instance }} FULL {{ pg_probackup_thread }}"
+  tags: crontab
+
+- name: Creates daily backup cronjob
+  cron: 
+    name: "Backup DELTA"
+    minute: "30"
+    hour: "22"
+    day: "*"
+    month: "*"
+    weekday: "1-6"
+    user: "postgres"
+    job: "/home/postgres/scripts/backup-start.sh /pg_backup {{ pg_probackup_instance }} DELTA {{ pg_probackup_thread }}"
+  tags: crontab
+
+- name: Creates delete backup cronjob
+  cron: 
+    name: "Delete old baclup"
+    minute: "00"
+    hour: "18"
+    day: "*"
+    month: "*"
+    weekday: "0"
+    user: "postgres"
+    job: "/home/postgres/scripts/delete-expired-start.sh /pg_backup {{ pg_probackup_instance }}"
+  tags: crontab

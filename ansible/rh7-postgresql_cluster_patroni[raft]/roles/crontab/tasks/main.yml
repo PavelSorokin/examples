@@ -1,0 +1,4 @@
+- name: Install crontab scripts
+  include_tasks: crontab-task.yml
+  when: crontab|bool == true
+  tags: install_crontab

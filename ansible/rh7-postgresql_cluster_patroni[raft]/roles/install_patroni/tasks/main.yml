@@ -1,0 +1,4 @@
+- name: Install Patroni
+  include_tasks: patroni-task.yml
+  when: install_patroni|bool == true
+  tags: patroni

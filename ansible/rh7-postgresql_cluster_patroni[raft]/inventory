@@ -1,0 +1,10 @@
+# PostgreSQL nodes
+[patroni_cluster]
+
+[master]
+[replica]
+[raft]
+
+[postgres_cluster:children]
+master
+replica
