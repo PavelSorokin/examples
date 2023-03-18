@@ -1,4 +1,0 @@
-- name: Check patroni
-  include_tasks: check-task.yml
-  when: check_patroni|bool == true
-  tags: patroni

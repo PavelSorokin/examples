@@ -1,4 +1,0 @@
-- name: Install Pre install
-  include_tasks: pre_install-task.yml
-  when: pre_install|bool == true
-  tags: pre_install

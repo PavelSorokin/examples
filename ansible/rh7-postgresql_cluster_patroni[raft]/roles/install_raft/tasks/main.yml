@@ -1,9 +1,0 @@
-- name: Install python for raft
-  include_tasks: pkg-task.yml
-  when: pkg_raft|bool == true
-  tags: raft
-
-- name: Install raft
-  include_tasks: raft-task.yml
-  when: "'raft' in group_names"
-  tags: raft
